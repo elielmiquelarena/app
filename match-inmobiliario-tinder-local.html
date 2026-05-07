@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match Estate OS · Matching inmobiliario local</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#101522;
+  --ink2:#2e3544;
+  --muted:#707887;
+  --line:#d9dde4;
+  --paper:#f6f3ec;
+  --panel:#ffffff;
+  --soft:#ece8dc;
+  --accent:#17223b;
+  --accent2:#b78b55;
+  --good:#0f8f6d;
+  --mid:#bd7b1d;
+  --bad:#9b2c2c;
+  --shadow:0 24px 80px rgba(16,21,34,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial, sans-serif;color:var(--ink);background:
+radial-gradient(circle at 15% 0%, rgba(183,139,85,.16), transparent 34%),
+linear-gradient(135deg,#fbfaf7 0%,#f0ece3 50%,#e7e1d4 100%);}
+button,input,select,textarea{font:inherit}
+.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+.topbar{height:78px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;border-bottom:1px solid rgba(16,21,34,.1);backdrop-filter:blur(18px);background:rgba(255,255,255,.72);position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:15px}
+.logo{width:44px;height:44px;border:1px solid var(--accent);display:grid;place-items:center;background:#fff}
+.logo svg{width:31px;height:31px}
+.brand h1{margin:0;font-size:18px;letter-spacing:.13em;text-transform:uppercase;font-weight:560}
+.brand small{display:block;color:var(--muted);letter-spacing:.04em;margin-top:3px}
+.top-actions{display:flex;gap:10px;align-items:center}
+.pill{padding:9px 12px;border:1px solid rgba(16,21,34,.13);background:#fff;color:var(--ink2);font-size:12px;text-transform:uppercase;letter-spacing:.07em}
+.layout{display:grid;grid-template-columns:310px minmax(520px,1fr) 430px;gap:18px;padding:18px;min-height:calc(100vh - 78px)}
+.panel{background:rgba(255,255,255,.82);border:1px solid rgba(16,21,34,.11);box-shadow:var(--shadow)}
+.aside{display:flex;flex-direction:column;min-height:0}
+.panel-head{padding:18px;border-bottom:1px solid var(--line)}
+.panel-head h2{margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:650}
+.panel-head p{margin:7px 0 0;color:var(--muted);font-size:13px;line-height:1.35}
+.searchbox{padding:14px;border-bottom:1px solid var(--line);display:grid;gap:9px}
+.searchbox input,.searchbox select{width:100%;border:1px solid var(--line);background:#fff;padding:11px 12px;color:var(--ink)}
+.buyer-list{overflow:auto;padding:10px;display:grid;gap:8px}
+.buyer-row{border:1px solid transparent;background:#fff;padding:13px 12px;cursor:pointer;display:grid;gap:5px;transition:.15s}
+.buyer-row:hover{border-color:rgba(183,139,85,.45);transform:translateY(-1px)}
+.buyer-row.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.buyer-row strong{font-size:14px}
+.buyer-meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.buyer-row.active .buyer-meta{color:rgba(255,255,255,.72)}
+.score-mini{font-weight:700;color:var(--good)}
+.buyer-row.active .score-mini{color:#fff}
+.workspace{display:grid;grid-template-rows:auto 1fr auto;gap:18px;min-width:0}
+.command{display:grid;grid-template-columns:1.2fr .8fr .8fr auto;gap:10px;padding:14px}
+.command input,.command select{border:1px solid var(--line);background:#fff;padding:12px}
+.btn{border:1px solid var(--accent);background:var(--accent);color:#fff;padding:12px 14px;cursor:pointer;text-transform:uppercase;letter-spacing:.08em;font-size:12px;white-space:nowrap}
+.btn.secondary{background:#fff;color:var(--accent)}
+.btn.ghost{background:transparent;color:var(--accent);border-color:var(--line)}
+.btn.gold{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.hero-card{position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 1.18fr;min-height:520px;background:#fff;border:1px solid rgba(16,21,34,.11);box-shadow:var(--shadow)}
+.client-side{padding:28px;border-right:1px solid var(--line);background:
+linear-gradient(180deg,#fff 0%,#f8f6f1 100%)}
+.label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.client-side h2{font-size:35px;line-height:.98;margin:13px 0 15px;font-weight:520;letter-spacing:-.04em}
+.client-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+.kv{border:1px solid var(--line);background:#fff;padding:12px;min-height:74px}
+.kv span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.kv b{font-size:14px;font-weight:630}
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
+.tag{border:1px solid rgba(16,21,34,.15);padding:6px 9px;background:#fff;font-size:12px;color:var(--ink2)}
+.property-side{position:relative;padding:26px 26px 22px;display:grid;grid-template-rows:auto auto 1fr auto;gap:18px}
+.visual{height:152px;border:1px solid rgba(16,21,34,.14);background:
+linear-gradient(135deg,rgba(16,21,34,.96),rgba(16,21,34,.72)),
+repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 1px,transparent 1px 22px);position:relative;overflow:hidden}
+.visual:after{content:"";position:absolute;width:210px;height:210px;border:1px solid rgba(255,255,255,.24);right:-55px;top:-75px;transform:rotate(22deg)}
+.visual .home-mark{position:absolute;left:22px;bottom:18px;color:#fff;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.rank{display:flex;justify-content:space-between;align-items:start;gap:20px}
+.rank h3{font-size:31px;line-height:1.02;margin:0;font-weight:560;letter-spacing:-.035em}
+.score-ring{width:108px;height:108px;border:10px solid var(--soft);display:grid;place-items:center;position:relative;flex:0 0 auto}
+.score-ring:before{content:"";position:absolute;inset:-10px;border:10px solid var(--good);clip-path:polygon(0 0,100% 0,100% var(--cut,70%),0 var(--cut,70%));}
+.score-ring b{position:relative;font-size:27px}
+.score-ring span{position:relative;font-size:11px;color:var(--muted);display:block;text-align:center;text-transform:uppercase;letter-spacing:.07em}
+.property-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.metric{border-top:1px solid var(--line);padding-top:9px}
+.metric span{display:block;font-size:11px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.metric b{font-size:16px;font-weight:650}
+.reasons{display:grid;gap:8px;align-content:start;max-height:120px;overflow:auto;padding-right:4px}
+.reason{font-size:13px;color:var(--ink2);border-left:3px solid var(--accent2);padding:8px 10px;background:#f8f5ee}
+.card-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.table-panel{overflow:hidden}
+.matches-table{width:100%;border-collapse:collapse;background:#fff}
+.matches-table th,.matches-table td{border-bottom:1px solid var(--line);padding:10px;text-align:left;font-size:12px;vertical-align:top}
+.matches-table th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:#faf9f6}
+.matches-table tbody tr:hover{background:#faf7ef}
+.rightcol{display:grid;grid-template-rows:auto auto 1fr;gap:18px;min-height:0}
+.upload{padding:14px;display:grid;gap:10px}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filebox{border:1px dashed rgba(16,21,34,.25);padding:10px;background:#fff}
+.filebox label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.filebox input{font-size:12px;width:100%}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;padding:12px 8px;border:0;background:#fff;border-right:1px solid var(--line);cursor:pointer;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tab.active{background:var(--accent);color:#fff}
+.tab-pane{display:none;padding:14px;overflow:auto}
+.tab-pane.active{display:block}
+.heat-wrap{overflow:auto;max-height:400px;border:1px solid var(--line);background:#fff}
+.heat-grid{display:grid;grid-template-columns:120px repeat(var(--cols),24px);width:max-content}
+.heat-corner,.heat-prop,.heat-buyer{position:sticky;background:#faf9f6;z-index:2;border-right:1px solid #e4e1d9;border-bottom:1px solid #e4e1d9;font-size:10px;color:var(--muted)}
+.heat-corner{left:0;top:0;height:28px;z-index:4}
+.heat-prop{top:0;height:28px;writing-mode:vertical-rl;transform:rotate(180deg);padding:3px;z-index:3;text-align:left}
+.heat-buyer{left:0;min-height:24px;padding:5px 6px;z-index:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.heat-cell{width:24px;height:24px;border-right:1px solid rgba(255,255,255,.4);border-bottom:1px solid rgba(255,255,255,.4);cursor:pointer}
+.zone-list{display:grid;gap:8px}
+.zone-item{background:#fff;border:1px solid var(--line);padding:10px}
+.zone-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
+.bar{height:9px;background:#ece8dc;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--good));width:0%}
+.saved-list{display:grid;gap:10px}
+.saved-card{border:1px solid var(--line);background:#fff;padding:12px;display:grid;gap:6px}
+.saved-card strong{font-size:14px}
+.saved-card span{font-size:12px;color:var(--muted)}
+.empty{padding:20px;text-align:center;color:var(--muted);border:1px dashed var(--line);background:#fff;font-size:13px}
+.footer-note{font-size:11px;color:var(--muted);padding:0 18px 16px}
+@media(max-width:1180px){
+  .layout{grid-template-columns:280px 1fr}
+  .rightcol{grid-column:1/-1;grid-template-columns:1fr}
+  .hero-card{grid-template-columns:1fr}
+  .client-side{border-right:0;border-bottom:1px solid var(--line)}
+}
+@media(max-width:780px){
+  .topbar{height:auto;align-items:flex-start;gap:12px;padding:16px;flex-direction:column}
+  .layout{grid-template-columns:1fr;padding:10px}
+  .command{grid-template-columns:1fr}
+  .hero-card{min-height:auto}
+  .card-actions,.property-metrics,.client-grid,.upload-grid{grid-template-columns:1fr}
+}
+@media print{
+  .topbar,.aside,.rightcol,.command,.card-actions,.footer-note{display:none!important}
+  .layout{display:block;padding:0}
+  .workspace{display:block}
+  .hero-card{box-shadow:none;border:0}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none">
+          <path d="M10 31.5 32 13l22 18.5v23H39V40H25v14.5H10v-23Z" stroke="#101522" stroke-width="3"/>
+          <path d="M18 25h28M47 22l7 6.5-7 6.5" stroke="#b78b55" stroke-width="3"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Match Estate OS</h1>
+        <small>Aplicación local de matching inmobiliario tipo Tinder</small>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="pill" id="dataCounter">0 viviendas · 0 compradores</div>
+      <button class="btn secondary" onclick="exportMatchesCSV()">Exportar matches</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel aside">
+      <div class="panel-head">
+        <h2>Compradores</h2>
+        <p>Selecciona un comprador y revisa viviendas ordenadas por probabilidad de encaje.</p>
+      </div>
+      <div class="searchbox">
+        <input id="buyerSearch" placeholder="Buscar comprador, ciudad o zona..." oninput="renderBuyerList()">
+        <select id="cityFilter" onchange="renderBuyerList(); refreshDeck(); renderHeatmap();">
+          <option value="">Todas las ciudades</option>
+        </select>
+      </div>
+      <div class="buyer-list" id="buyerList"></div>
+    </aside>
+
+    <section class="workspace">
+      <div class="panel command">
+        <input id="globalSearch" placeholder="Filtrar vivienda por título, zona, extras..." oninput="refreshDeck()">
+        <select id="minScore" onchange="refreshDeck(); renderHeatmap();">
+          <option value="0">Todos los encajes</option>
+          <option value="50">Desde 50%</option>
+          <option value="65" selected>Desde 65%</option>
+          <option value="80">Desde 80%</option>
+        </select>
+        <select id="sortMode" onchange="refreshDeck()">
+          <option value="score">Ordenar por match</option>
+          <option value="priceAsc">Precio menor</option>
+          <option value="priceDesc">Precio mayor</option>
+          <option value="sqmDesc">Más m²</option>
+        </select>
+        <button class="btn gold" onclick="nextCard()">Siguiente</button>
+      </div>
+
+      <div class="hero-card" id="matchCard"></div>
+
+      <div class="panel table-panel">
+        <table class="matches-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Vivienda</th><th>Zona</th><th>Precio</th><th>Match</th><th>Motivo principal</th>
+            </tr>
+          </thead>
+          <tbody id="topMatches"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="rightcol">
+      <div class="panel upload">
+        <div class="panel-head" style="padding:0 0 10px;border:0">
+          <h2>Datos</h2>
+          <p>La app ya viene con los dos Excel adjuntos embebidos. También puedes cargar CSV o XLSX con las mismas columnas.</p>
+        </div>
+        <div class="upload-grid">
+          <div class="filebox">
+            <label>Propiedades</label>
+            <input type="file" accept=".csv,.xlsx" onchange="loadFile(event,'properties')">
+          </div>
+          <div class="filebox">
+            <label>Compradores</label>
+            <input type="file" accept=".csv,.xlsx" onchange="loadFile(event,'buyers')">
+          </div>
+        </div>
+        <button class="btn ghost" onclick="resetEmbeddedData()">Restaurar datos iniciales</button>
+      </div>
+
+      <div class="panel">
+        <div class="tabs">
+          <button class="tab active" onclick="openTab('heat',this)">Mapa calor</button>
+          <button class="tab" onclick="openTab('zones',this)">Zonas</button>
+          <button class="tab" onclick="openTab('saved',this)">Guardados</button>
+        </div>
+        <div class="tab-pane active" id="tab-heat">
+          <div class="heat-wrap"><div class="heat-grid" id="heatGrid"></div></div>
+          <p class="footer-note" style="padding:10px 0 0;margin:0">Color más intenso = mayor probabilidad de match.</p>
+        </div>
+        <div class="tab-pane" id="tab-zones">
+          <div class="zone-list" id="zoneList"></div>
+        </div>
+        <div class="tab-pane" id="tab-saved">
+          <div class="saved-list" id="savedList"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script id="embedded-properties" type="application/json">[{"ID propiedad":"PROP-001","Título":"Piso en Retiro","Tipología":"Piso","Ciudad":"Madrid","Barrio/Zona":"Retiro","m² construidos":125,"m² parcela":null,"Habitaciones":2,"Baños":1,"Planta":2,"Precio venta":780000,"€/m²":6240,"Estado":"Obra nueva","Orientación":"Sur","Extras":"gimnasio, vistas, terraza, ascensor","Cert. energética":"E","Rentabilidad estimada %":5.8,"Uso recomendado":"Inversión alquiler","Fecha alta":46136,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-002","Título":"Ático en Abando","Tipología":"Ático","Ciudad":"Bilbao","Barrio/Zona":"Abando","m² construidos":194,"m² parcela":null,"Habitaciones":4,"Baños":1,"Planta":7,"Precio venta":1353000,"€/m²":6974,"Estado":"Reformado","Orientación":"Este","Extras":"ascensor, piscina, jardín, trastero, garaje","Cert. energética":"C","Rentabilidad estimada %":5.8,"Uso recomendado":"Residencial","Fecha alta":46120,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-003","Título":"Ático en Marbella","Tipología":"Ático","Ciudad":"Málaga","Barrio/Zona":"Marbella","m² construidos":176,"m² parcela":null,"Habitaciones":2,"Baños":3,"Planta":14,"Precio venta":1433000,"€/m²":8142,"Estado":"Lujo","Orientación":"Sur","Extras":"gimnasio, jardín, garaje, terraza, zona infantil, ascensor","Cert. energética":"A","Rentabilidad estimada %":4.8,"Uso recomendado":"Patrimonial","Fecha alta":46069,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-004","Título":"Piso en Ciutat Vella","Tipología":"Piso","Ciudad":"Valencia","Barrio/Zona":"Ciutat Vella","m² construidos":145,"m² parcela":null,"Habitaciones":2,"Baños":3,"Planta":4,"Precio venta":559000,"€/m²":3855,"Estado":"Buen estado","Orientación":"Sur","Extras":"gimnasio, zona infantil, piscina, ascensor","Cert. energética":"D","Rentabilidad estimada %":4.8,"Uso recomendado":"Inversión alquiler","Fecha alta":46007,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-005","Título":"Dúplex en Gràcia","Tipología":"Dúplex","Ciudad":"Barcelona","Barrio/Zona":"Gràcia","m² construidos":69,"m² parcela":null,"Habitaciones":2,"Baños":1,"Planta":5,"Precio venta":365000,"€/m²":5290,"Estado":"Buen estado","Orientación":"Oeste","Extras":"jardín, gimnasio, trastero, ascensor","Cert. energética":"D","Rentabilidad estimada %":3.7,"Uso recomendado":"Inversión alquiler","Fecha alta":46089,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-006","Título":"Ático en Abando","Tipología":"Ático","Ciudad":"Bilbao","Barrio/Zona":"Abando","m² construidos":229,"m² parcela":null,"Habitaciones":5,"Baños":4,"Planta":10,"Precio venta":1318000,"€/m²":5755,"Estado":"Reformado","Orientación":"Sur","Extras":"seguridad 24h, domótica, garaje, terraza, ascensor","Cert. energética":"D","Rentabilidad estimada %":5.8,"Uso recomendado":"Patrimonial","Fecha alta":46115,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-007","Título":"Villa en Centro","Tipología":"Villa","Ciudad":"Zaragoza","Barrio/Zona":"Centro","m² construidos":415,"m² parcela":273,"Habitaciones":5,"Baños":6,"Planta":null,"Precio venta":1497000,"€/m²":3607,"Estado":"Reformado","Orientación":"Suroeste","Extras":"zona infantil, trastero, garaje, ascensor, vistas","Cert. energética":"C","Rentabilidad estimada %":7.5,"Uso recomendado":"Inversión alquiler","Fecha alta":46103,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-008","Título":"Apartamento en Retiro","Tipología":"Apartamento","Ciudad":"Madrid","Barrio/Zona":"Retiro","m² construidos":131,"m² parcela":null,"Habitaciones":5,"Baños":3,"Planta":3,"Precio venta":595000,"€/m²":4542,"Estado":"Obra nueva","Orientación":"Este","Extras":"seguridad 24h, chimenea, terraza, trastero","Cert. energética":"C","Rentabilidad estimada %":4.2,"Uso recomendado":"Inversión alquiler","Fecha alta":46018,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-009","Título":"Piso en Chamartín","Tipología":"Piso","Ciudad":"Madrid","Barrio/Zona":"Chamartín","m² construidos":179,"m² parcela":null,"Habitaciones":1,"Baños":3,"Planta":2,"Precio venta":1092000,"€/m²":6101,"Estado":"Buen estado","Orientación":"Suroeste","Extras":"seguridad 24h, piscina, ascensor, chimenea, vistas, garaje","Cert. energética":"B","Rentabilidad estimada %":6.3,"Uso recomendado":"Patrimonial","Fecha alta":46005,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-010","Título":"Ático en Ciutat Vella","Tipología":"Ático","Ciudad":"Valencia","Barrio/Zona":"Ciutat Vella","m² construidos":212,"m² parcela":null,"Habitaciones":5,"Baños":1,"Planta":8,"Precio venta":797000,"€/m²":3759,"Estado":"Obra nueva","Orientación":"Suroeste","Extras":"terraza, gimnasio, seguridad 24h, jardín, zona infantil, ascensor","Cert. energética":"A","Rentabilidad estimada %":4.1,"Uso recomendado":"Residencial","Fecha alta":46142,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-011","Título":"Ático en Chamartín","Tipología":"Ático","Ciudad":"Madrid","Barrio/Zona":"Chamartín","m² construidos":151,"m² parcela":null,"Habitaciones":5,"Baños":2,"Planta":13,"Precio venta":1089000,"€/m²":7212,"Estado":"Reformado","Orientación":"Oeste","Extras":"jardín, domótica, vistas, chimenea, garaje, terraza, ascensor","Cert. energética":"D","Rentabilidad estimada %":5.2,"Uso recomendado":"Residencial","Fecha alta":45975,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-012","Título":"Piso en Retiro","Tipología":"Piso","Ciudad":"Madrid","Barrio/Zona":"Retiro","m² construidos":141,"m² parcela":null,"Habitaciones":1,"Baños":1,"Planta":3,"Precio venta":708000,"€/m²":5021,"Estado":"Reformado","Orientación":"Sureste","Extras":"piscina, vistas, chimenea, ascensor, domótica, garaje","Cert. energética":"A","Rentabilidad estimada %":3.3,"Uso recomendado":"Residencial","Fecha alta":46124,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-013","Título":"Piso en Tetuán","Tipología":"Piso","Ciudad":"Madrid","Barrio/Zona":"Tetuán","m² construidos":179,"m² parcela":null,"Habitaciones":4,"Baños":1,"Planta":6,"Precio venta":1184000,"€/m²":6615,"Estado":"Reformado","Orientación":"Suroeste","Extras":"vistas, terraza, chimenea, ascensor","Cert. energética":"E","Rentabilidad estimada %":6.1,"Uso recomendado":"Patrimonial","Fecha alta":46027,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-014","Título":"Piso en Hortaleza","Tipología":"Piso","Ciudad":"Madrid","Barrio/Zona":"Hortaleza","m² construidos":69,"m² parcela":null,"Habitaciones":5,"Baños":3,"Planta":8,"Precio venta":326000,"€/m²":4725,"Estado":"Lujo","Orientación":"Norte","Extras":"terraza, chimenea, gimnasio, domótica, piscina, ascensor","Cert. energética":"B","Rentabilidad estimada %":3.4,"Uso recomendado":"Residencial","Fecha alta":46129,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-015","Título":"Ático en Tetuán","Tipología":"Ático","Ciudad":"Madrid","Barrio/Zona":"Tetuán","m² construidos":225,"m² parcela":null,"Habitaciones":3,"Baños":1,"Planta":14,"Precio venta":1268000,"€/m²":5636,"Estado":"Obra nueva","Orientación":"Suroeste","Extras":"ascensor, jardín, trastero, zona infantil, chimenea","Cert. energética":"C","Rentabilidad estimada %":5.2,"Uso recomendado":"Residencial","Fecha alta":46042,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-016","Título":"Chalet independiente en Marbella","Tipología":"Chalet independiente","Ciudad":"Málaga","Barrio/Zona":"Marbella","m² construidos":433,"m² parcela":1351,"Habitaciones":3,"Baños":2,"Planta":null,"Precio venta":2908000,"€/m²":6716,"Estado":"Reformado","Orientación":"Sureste","Extras":"trastero, garaje, jardín, chimenea","Cert. energética":"C","Rentabilidad estimada %":5.9,"Uso recomendado":"Residencial","Fecha alta":46071,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-017","Título":"Piso en Abando","Tipología":"Piso","Ciudad":"Bilbao","Barrio/Zona":"Abando","m² construidos":81,"m² parcela":null,"Habitaciones":2,"Baños":2,"Planta":1,"Precio venta":512000,"€/m²":6321,"Estado":"Reformado","Orientación":"Suroeste","Extras":"ascensor, chimenea, gimnasio, jardín","Cert. energética":"C","Rentabilidad estimada %":5.4,"Uso recomendado":"Segunda residencia","Fecha alta":46056,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-018","Título":"Chalet independiente en Chamartín","Tipología":"Chalet independiente","Ciudad":"Madrid","Barrio/Zona":"Chamartín","m² construidos":286,"m² parcela":933,"Habitaciones":3,"Baños":2,"Planta":null,"Precio venta":3001000,"€/m²":10493,"Estado":"Obra nueva","Orientación":"Suroeste","Extras":"piscina, domótica, seguridad 24h, vistas, terraza","Cert. energética":"B","Rentabilidad estimada %":5.6,"Uso recomendado":"Segunda residencia","Fecha alta":46115,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-019","Título":"Piso en Abando","Tipología":"Piso","Ciudad":"Bilbao","Barrio/Zona":"Abando","m² construidos":87,"m² parcela":null,"Habitaciones":1,"Baños":2,"Planta":5,"Precio venta":552000,"€/m²":6345,"Estado":"Obra nueva","Orientación":"Sureste","Extras":"trastero, jardín, zona infantil, ascensor","Cert. energética":"D","Rentabilidad estimada %":7.5,"Uso recomendado":"Inversión alquiler","Fecha alta":45973,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-020","Título":"Villa en Centro","Tipología":"Villa","Ciudad":"Madrid","Barrio/Zona":"Centro","m² construidos":235,"m² parcela":617,"Habitaciones":6,"Baños":2,"Planta":null,"Precio venta":1905000,"€/m²":8106,"Estado":"A reformar","Orientación":"Sur","Extras":"zona infantil, jardín, ascensor, piscina, garaje, chimenea","Cert. energética":"B","Rentabilidad estimada %":6.8,"Uso recomendado":"Patrimonial","Fecha alta":46134,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-021","Título":"Dúplex en Sarrià-Sant Gervasi","Tipología":"Dúplex","Ciudad":"Barcelona","Barrio/Zona":"Sarrià-Sant Gervasi","m² construidos":113,"m² parcela":null,"Habitaciones":2,"Baños":1,"Planta":3,"Precio venta":747000,"€/m²":6611,"Estado":"Lujo","Orientación":"Sureste","Extras":"garaje, ascensor, trastero, seguridad 24h, vistas","Cert. energética":"C","Rentabilidad estimada %":7.3,"Uso recomendado":"Residencial","Fecha alta":45970,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-022","Título":"Chalet independiente en Centro","Tipología":"Chalet independiente","Ciudad":"Madrid","Barrio/Zona":"Centro","m² construidos":280,"m² parcela":1471,"Habitaciones":3,"Baños":2,"Planta":null,"Precio venta":2135000,"€/m²":7625,"Estado":"Reformado","Orientación":"Norte","Extras":"vistas, gimnasio, seguridad 24h, garaje, chimenea","Cert. energética":"D","Rentabilidad estimada %":3.1,"Uso recomendado":"Inversión alquiler","Fecha alta":45996,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-023","Título":"Piso en Estepona","Tipología":"Piso","Ciudad":"Málaga","Barrio/Zona":"Estepona","m² construidos":139,"m² parcela":null,"Habitaciones":5,"Baños":2,"Planta":1,"Precio venta":724000,"€/m²":5209,"Estado":"Reformado","Orientación":"Sur","Extras":"seguridad 24h, ascensor, vistas, trastero, gimnasio","Cert. energética":"B","Rentabilidad estimada %":5,"Uso recomendado":"Patrimonial","Fecha alta":45965,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-024","Título":"Chalet independiente en Centro","Tipología":"Chalet independiente","Ciudad":"Madrid","Barrio/Zona":"Centro","m² construidos":299,"m² parcela":250,"Habitaciones":6,"Baños":6,"Planta":null,"Precio venta":1996000,"€/m²":6676,"Estado":"Reformado","Orientación":"Oeste","Extras":"gimnasio, chimenea, trastero, domótica, seguridad 24h, jardín","Cert. energética":"B","Rentabilidad estimada %":6.1,"Uso recomendado":"Segunda residencia","Fecha alta":45971,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-025","Título":"Piso en Centro","Tipología":"Piso","Ciudad":"Zaragoza","Barrio/Zona":"Centro","m² construidos":115,"m² parcela":null,"Habitaciones":3,"Baños":1,"Planta":3,"Precio venta":263000,"€/m²":2287,"Estado":"Reformado","Orientación":"Suroeste","Extras":"jardín, domótica, gimnasio, ascensor","Cert. energética":"E","Rentabilidad estimada %":4,"Uso recomendado":"Patrimonial","Fecha alta":46125,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-026","Título":"Piso en Ruzafa","Tipología":"Piso","Ciudad":"Valencia","Barrio/Zona":"Ruzafa","m² construidos":56,"m² parcela":null,"Habitaciones":1,"Baños":2,"Planta":3,"Precio venta":175000,"€/m²":3125,"Estado":"Buen estado","Orientación":"Sureste","Extras":"terraza, seguridad 24h, jardín, garaje, domótica, zona infantil, ascensor","Cert. energética":"E","Rentabilidad estimada %":4.5,"Uso recomendado":"Patrimonial","Fecha alta":46025,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-027","Título":"Ático en Nervión","Tipología":"Ático","Ciudad":"Sevilla","Barrio/Zona":"Nervión","m² construidos":220,"m² parcela":null,"Habitaciones":5,"Baños":2,"Planta":12,"Precio venta":779000,"€/m²":3541,"Estado":"Reformado","Orientación":"Oeste","Extras":"zona infantil, ascensor, seguridad 24h, domótica","Cert. energética":"A","Rentabilidad estimada %":6.3,"Uso recomendado":"Inversión alquiler","Fecha alta":45983,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-028","Título":"Piso en Gràcia","Tipología":"Piso","Ciudad":"Barcelona","Barrio/Zona":"Gràcia","m² construidos":193,"m² parcela":null,"Habitaciones":1,"Baños":1,"Planta":2,"Precio venta":951000,"€/m²":4927,"Estado":"Reformado","Orientación":"Oeste","Extras":"chimenea, jardín, garaje, vistas, ascensor","Cert. energética":"D","Rentabilidad estimada %":3.4,"Uso recomendado":"Patrimonial","Fecha alta":46039,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-029","Título":"Loft en Sardinero","Tipología":"Loft","Ciudad":"Santander","Barrio/Zona":"Sardinero","m² construidos":57,"m² parcela":null,"Habitaciones":2,"Baños":2,"Planta":0,"Precio venta":298000,"€/m²":5228,"Estado":"Reformado","Orientación":"Oeste","Extras":"vistas, chimenea, seguridad 24h, gimnasio, jardín","Cert. energética":"D","Rentabilidad estimada %":3.2,"Uso recomendado":"Segunda residencia","Fecha alta":46019,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-030","Título":"Chalet adosado en Ruzafa","Tipología":"Chalet adosado","Ciudad":"Valencia","Barrio/Zona":"Ruzafa","m² construidos":384,"m² parcela":1343,"Habitaciones":4,"Baños":6,"Planta":null,"Precio venta":1280000,"€/m²":3333,"Estado":"A reformar","Orientación":"Sur","Extras":"garaje, zona infantil, vistas","Cert. energética":"A","Rentabilidad estimada %":4.3,"Uso recomendado":"Segunda residencia","Fecha alta":46109,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-031","Título":"Piso en Marbella","Tipología":"Piso","Ciudad":"Málaga","Barrio/Zona":"Marbella","m² construidos":152,"m² parcela":null,"Habitaciones":3,"Baños":2,"Planta":4,"Precio venta":1030000,"€/m²":6776,"Estado":"A reformar","Orientación":"Suroeste","Extras":"terraza, seguridad 24h, chimenea, trastero, jardín, zona infantil, ascensor","Cert. energética":"A","Rentabilidad estimada %":6.5,"Uso recomendado":"Inversión alquiler","Fecha alta":46126,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-032","Título":"Chalet independiente en Salamanca","Tipología":"Chalet independiente","Ciudad":"Madrid","Barrio/Zona":"Salamanca","m² construidos":267,"m² parcela":484,"Habitaciones":4,"Baños":5,"Planta":null,"Precio venta":2479000,"€/m²":9285,"Estado":"Lujo","Orientación":"Norte","Extras":"chimenea, ascensor, trastero, piscina, garaje, vistas","Cert. energética":"E","Rentabilidad estimada %":3.2,"Uso recomendado":"Segunda residencia","Fecha alta":46102,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-033","Título":"Ático en Ruzafa","Tipología":"Ático","Ciudad":"Valencia","Barrio/Zona":"Ruzafa","m² construidos":130,"m² parcela":null,"Habitaciones":2,"Baños":2,"Planta":6,"Precio venta":590000,"€/m²":4538,"Estado":"Reformado","Orientación":"Este","Extras":"zona infantil, gimnasio, garaje, terraza, trastero, ascensor","Cert. energética":"A","Rentabilidad estimada %":5.4,"Uso recomendado":"Segunda residencia","Fecha alta":46007,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-034","Título":"Dúplex en Estepona","Tipología":"Dúplex","Ciudad":"Málaga","Barrio/Zona":"Estepona","m² construidos":82,"m² parcela":null,"Habitaciones":4,"Baños":2,"Planta":7,"Precio venta":425000,"€/m²":5183,"Estado":"A reformar","Orientación":"Sureste","Extras":"piscina, seguridad 24h, ascensor, zona infantil, domótica, jardín","Cert. energética":"C","Rentabilidad estimada %":4.6,"Uso recomendado":"Inversión alquiler","Fecha alta":46032,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-035","Título":"Apartamento en Eixample","Tipología":"Apartamento","Ciudad":"Barcelona","Barrio/Zona":"Eixample","m² construidos":117,"m² parcela":null,"Habitaciones":4,"Baños":3,"Planta":9,"Precio venta":632000,"€/m²":5402,"Estado":"Reformado","Orientación":"Este","Extras":"terraza, domótica, trastero, piscina, zona infantil","Cert. energética":"C","Rentabilidad estimada %":4.4,"Uso recomendado":"Segunda residencia","Fecha alta":46089,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-036","Título":"Ático en Salamanca","Tipología":"Ático","Ciudad":"Madrid","Barrio/Zona":"Salamanca","m² construidos":128,"m² parcela":null,"Habitaciones":2,"Baños":2,"Planta":11,"Precio venta":1074000,"€/m²":8391,"Estado":"Obra nueva","Orientación":"Sur","Extras":"chimenea, domótica, zona infantil, gimnasio, ascensor","Cert. energética":"D","Rentabilidad estimada %":6.2,"Uso recomendado":"Segunda residencia","Fecha alta":46139,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-037","Título":"Piso en Sardinero","Tipología":"Piso","Ciudad":"Santander","Barrio/Zona":"Sardinero","m² construidos":196,"m² parcela":null,"Habitaciones":5,"Baños":2,"Planta":6,"Precio venta":1135000,"€/m²":5791,"Estado":"Obra nueva","Orientación":"Sur","Extras":"trastero, domótica, ascensor, gimnasio, seguridad 24h","Cert. energética":"C","Rentabilidad estimada %":3.6,"Uso recomendado":"Inversión alquiler","Fecha alta":46084,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-038","Título":"Chalet adosado en Hortaleza","Tipología":"Chalet adosado","Ciudad":"Madrid","Barrio/Zona":"Hortaleza","m² construidos":286,"m² parcela":1472,"Habitaciones":7,"Baños":6,"Planta":null,"Precio venta":1581000,"€/m²":5528,"Estado":"Obra nueva","Orientación":"Sureste","Extras":"ascensor, jardín, trastero, piscina","Cert. energética":"B","Rentabilidad estimada %":4.3,"Uso recomendado":"Residencial","Fecha alta":46066,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-039","Título":"Chalet adosado en Sarrià-Sant Gervasi","Tipología":"Chalet adosado","Ciudad":"Barcelona","Barrio/Zona":"Sarrià-Sant Gervasi","m² construidos":209,"m² parcela":275,"Habitaciones":6,"Baños":2,"Planta":null,"Precio venta":1710000,"€/m²":8182,"Estado":"Obra nueva","Orientación":"Norte","Extras":"domótica, trastero, piscina, terraza, ascensor, vistas","Cert. energética":"D","Rentabilidad estimada %":5.3,"Uso recomendado":"Residencial","Fecha alta":46021,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-040","Título":"Dúplex en Moncloa-Aravaca","Tipología":"Dúplex","Ciudad":"Madrid","Barrio/Zona":"Moncloa-Aravaca","m² construidos":132,"m² parcela":null,"Habitaciones":1,"Baños":1,"Planta":1,"Precio venta":771000,"€/m²":5841,"Estado":"Reformado","Orientación":"Sureste","Extras":"gimnasio, chimenea, zona infantil, jardín, vistas, seguridad 24h, ascensor","Cert. energética":"D","Rentabilidad estimada %":4.5,"Uso recomendado":"Residencial","Fecha alta":46030,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-041","Título":"Loft en Retiro","Tipología":"Loft","Ciudad":"Madrid","Barrio/Zona":"Retiro","m² construidos":81,"m² parcela":null,"Habitaciones":1,"Baños":2,"Planta":5,"Precio venta":356000,"€/m²":4395,"Estado":"Reformado","Orientación":"Suroeste","Extras":"piscina, seguridad 24h, garaje, chimenea","Cert. energética":"E","Rentabilidad estimada %":5.2,"Uso recomendado":"Residencial","Fecha alta":46143,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-042","Título":"Chalet adosado en Sarrià-Sant Gervasi","Tipología":"Chalet adosado","Ciudad":"Barcelona","Barrio/Zona":"Sarrià-Sant Gervasi","m² construidos":504,"m² parcela":728,"Habitaciones":6,"Baños":2,"Planta":null,"Precio venta":4380000,"€/m²":8690,"Estado":"Reformado","Orientación":"Este","Extras":"vistas, garaje, seguridad 24h, jardín","Cert. energética":"B","Rentabilidad estimada %":3.4,"Uso recomendado":"Inversión alquiler","Fecha alta":45978,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-043","Título":"Chalet adosado en Centro","Tipología":"Chalet adosado","Ciudad":"Zaragoza","Barrio/Zona":"Centro","m² construidos":436,"m² parcela":504,"Habitaciones":5,"Baños":5,"Planta":null,"Precio venta":1282000,"€/m²":2940,"Estado":"Obra nueva","Orientación":"Oeste","Extras":"ascensor, seguridad 24h, zona infantil, domótica, gimnasio, terraza","Cert. energética":"C","Rentabilidad estimada %":5.8,"Uso recomendado":"Residencial","Fecha alta":45990,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-044","Título":"Villa en Tetuán","Tipología":"Villa","Ciudad":"Madrid","Barrio/Zona":"Tetuán","m² construidos":439,"m² parcela":801,"Habitaciones":7,"Baños":2,"Planta":null,"Precio venta":3354000,"€/m²":7640,"Estado":"Lujo","Orientación":"Oeste","Extras":"domótica, seguridad 24h, chimenea, ascensor","Cert. energética":"D","Rentabilidad estimada %":7.5,"Uso recomendado":"Patrimonial","Fecha alta":46097,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-045","Título":"Piso en Estepona","Tipología":"Piso","Ciudad":"Málaga","Barrio/Zona":"Estepona","m² construidos":81,"m² parcela":null,"Habitaciones":2,"Baños":2,"Planta":6,"Precio venta":418000,"€/m²":5160,"Estado":"Reformado","Orientación":"Este","Extras":"zona infantil, vistas, seguridad 24h, terraza, domótica, ascensor","Cert. energética":"A","Rentabilidad estimada %":7.5,"Uso recomendado":"Patrimonial","Fecha alta":46121,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-046","Título":"Chalet independiente en Salamanca","Tipología":"Chalet independiente","Ciudad":"Madrid","Barrio/Zona":"Salamanca","m² construidos":422,"m² parcela":361,"Habitaciones":6,"Baños":5,"Planta":null,"Precio venta":3348000,"€/m²":7934,"Estado":"Lujo","Orientación":"Oeste","Extras":"zona infantil, domótica, terraza, jardín, ascensor, chimenea","Cert. energética":"D","Rentabilidad estimada %":3.6,"Uso recomendado":"Inversión alquiler","Fecha alta":46110,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-047","Título":"Piso en Centro","Tipología":"Piso","Ciudad":"Madrid","Barrio/Zona":"Centro","m² construidos":58,"m² parcela":null,"Habitaciones":5,"Baños":2,"Planta":1,"Precio venta":296000,"€/m²":5103,"Estado":"Lujo","Orientación":"Este","Extras":"domótica, garaje, piscina, ascensor","Cert. energética":"E","Rentabilidad estimada %":6.3,"Uso recomendado":"Patrimonial","Fecha alta":46016,"Prioridad comercial":"Media"},{"ID propiedad":"PROP-048","Título":"Piso en Playa San Juan","Tipología":"Piso","Ciudad":"Alicante","Barrio/Zona":"Playa San Juan","m² construidos":196,"m² parcela":null,"Habitaciones":2,"Baños":2,"Planta":3,"Precio venta":746000,"€/m²":3806,"Estado":"Reformado","Orientación":"Norte","Extras":"garaje, ascensor, vistas, trastero","Cert. energética":"C","Rentabilidad estimada %":6.4,"Uso recomendado":"Patrimonial","Fecha alta":46014,"Prioridad comercial":"Alta"},{"ID propiedad":"PROP-049","Título":"Ático en Marbella","Tipología":"Ático","Ciudad":"Málaga","Barrio/Zona":"Marbella","m² construidos":168,"m² parcela":null,"Habitaciones":4,"Baños":4,"Planta":12,"Precio venta":1390000,"€/m²":8274,"Estado":"A reformar","Orientación":"Oeste","Extras":"chimenea, jardín, gimnasio, vistas, ascensor","Cert. energética":"A","Rentabilidad estimada %":4.5,"Uso recomendado":"Patrimonial","Fecha alta":46084,"Prioridad comercial":"Baja"},{"ID propiedad":"PROP-050","Título":"Piso en Ruzafa","Tipología":"Piso","Ciudad":"Valencia","Barrio/Zona":"Ruzafa","m² construidos":93,"m² parcela":null,"Habitaciones":4,"Baños":1,"Planta":2,"Precio venta":332000,"€/m²":3570,"Estado":"Buen estado","Orientación":"Oeste","Extras":"garaje, domótica, chimenea, seguridad 24h, zona infantil, ascensor","Cert. energética":"B","Rentabilidad estimada %":3.4,"Uso recomendado":"Segunda residencia","Fecha alta":46140,"Prioridad comercial":"Media"}]</script>
+<script id="embedded-buyers" type="application/json">[{"ID propietario":"CLI-001","Nombre":"Laura Ruiz Fuentes","Teléfono":"+34 618 340 746","Email":"cliente001@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Moncloa-Aravaca","Tipología preferida":"Dúplex / Loft","m² mínimo":117,"m² máximo":164,"Presupuesto mínimo":684000,"Presupuesto máximo":918000,"Habitaciones mín.":1,"Baños mín.":1,"Extras deseados":"seguridad 24h, jardín, vistas","Financiación":"Venta previa pendiente","Plazo compra":"0-3 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-040","Probabilidad encaje %":76,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-002","Nombre":"Carlos Núñez Pérez","Teléfono":"+34 631 279 180","Email":"cliente002@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Compra premium","Ciudad preferida":"Málaga","Zona preferida":"Estepona","Tipología preferida":"Piso / Dúplex / Apartamento","m² mínimo":65,"m² máximo":85,"Presupuesto mínimo":322000,"Presupuesto máximo":431000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"vistas, ascensor, terraza","Financiación":"Venta previa pendiente","Plazo compra":"3-6 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-045","Probabilidad encaje %":77,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-003","Nombre":"Marta Ortega Navarro","Teléfono":"+34 668 965 409","Email":"cliente003@ejemplo.com","Origen lead":"Referido","Motivo de compra":"Segunda residencia","Ciudad preferida":"Valencia","Zona preferida":"Ruzafa","Tipología preferida":"Chalet adosado / Villa","m² mínimo":307,"m² máximo":404,"Presupuesto mínimo":1123000,"Presupuesto máximo":1536000,"Habitaciones mín.":4,"Baños mín.":5,"Extras deseados":"zona infantil, vistas, garaje","Financiación":"Venta previa pendiente","Plazo compra":"6-12 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-030","Probabilidad encaje %":92,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-004","Nombre":"Javier Vega Torres","Teléfono":"+34 691 294 735","Email":"cliente004@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Bilbao","Zona preferida":"Abando","Tipología preferida":"Ático / Dúplex","m² mínimo":183,"m² máximo":242,"Presupuesto mínimo":1029000,"Presupuesto máximo":1533000,"Habitaciones mín.":4,"Baños mín.":1,"Extras deseados":"jardín, piscina, garaje","Financiación":"Necesita financiación","Plazo compra":"0-3 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-002","Probabilidad encaje %":67,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-005","Nombre":"Sofía Ramos Ramos","Teléfono":"+34 644 950 268","Email":"cliente005@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Compra premium","Ciudad preferida":"Málaga","Zona preferida":"Marbella","Tipología preferida":"Ático / Piso / Dúplex","m² mínimo":152,"m² máximo":223,"Presupuesto mínimo":1032000,"Presupuesto máximo":1546000,"Habitaciones mín.":2,"Baños mín.":3,"Extras deseados":"jardín, zona infantil, garaje","Financiación":"Compra al contado","Plazo compra":"6-12 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-003","Probabilidad encaje %":77,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-006","Nombre":"Diego Herrera López","Teléfono":"+34 668 477 788","Email":"cliente006@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Valencia","Zona preferida":"Ciutat Vella","Tipología preferida":"Ático / Dúplex / Piso","m² mínimo":190,"m² máximo":236,"Presupuesto mínimo":676000,"Presupuesto máximo":920000,"Habitaciones mín.":5,"Baños mín.":1,"Extras deseados":"jardín, terraza, seguridad 24h","Financiación":"Compra al contado","Plazo compra":"0-3 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-010","Probabilidad encaje %":78,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-007","Nombre":"Claudia López Sánchez","Teléfono":"+34 615 138 411","Email":"cliente007@ejemplo.com","Origen lead":"Google Ads","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Madrid","Zona preferida":"Moncloa-Aravaca","Tipología preferida":"Dúplex","m² mínimo":122,"m² máximo":160,"Presupuesto mínimo":695000,"Presupuesto máximo":821000,"Habitaciones mín.":1,"Baños mín.":1,"Extras deseados":"seguridad 24h, zona infantil, jardín","Financiación":"Necesita financiación","Plazo compra":"Sin urgencia","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-040","Probabilidad encaje %":71,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-008","Nombre":"Alejandro Romero Molina","Teléfono":"+34 666 341 975","Email":"cliente008@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Madrid","Zona preferida":"Hortaleza","Tipología preferida":"Chalet adosado / Chalet independiente","m² mínimo":256,"m² máximo":313,"Presupuesto mínimo":1251000,"Presupuesto máximo":1644000,"Habitaciones mín.":7,"Baños mín.":6,"Extras deseados":"trastero, ascensor, jardín","Financiación":"Compra al contado","Plazo compra":"0-3 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-038","Probabilidad encaje %":65,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-009","Nombre":"Nuria Núñez Romero","Teléfono":"+34 618 949 883","Email":"cliente009@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Inversión patrimonial","Ciudad preferida":"Madrid","Zona preferida":"Retiro","Tipología preferida":"Apartamento / Piso","m² mínimo":123,"m² máximo":169,"Presupuesto mínimo":429000,"Presupuesto máximo":632000,"Habitaciones mín.":5,"Baños mín.":3,"Extras deseados":"terraza, seguridad 24h, trastero","Financiación":"Necesita financiación","Plazo compra":"6-12 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-008","Probabilidad encaje %":86,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-010","Nombre":"Pablo Vega Torres","Teléfono":"+34 685 431 116","Email":"cliente010@ejemplo.com","Origen lead":"Referido","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Chamartín","Tipología preferida":"Chalet independiente / Villa","m² mínimo":263,"m² máximo":312,"Presupuesto mínimo":2187000,"Presupuesto máximo":3211000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"piscina, domótica, terraza","Financiación":"Hipoteca preaprobada","Plazo compra":"0-3 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-018","Probabilidad encaje %":76,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-011","Nombre":"Lucía Ortega López","Teléfono":"+34 672 829 554","Email":"cliente011@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Valencia","Zona preferida":"Ruzafa","Tipología preferida":"Ático / Dúplex / Piso","m² mínimo":112,"m² máximo":154,"Presupuesto mínimo":442000,"Presupuesto máximo":674000,"Habitaciones mín.":2,"Baños mín.":1,"Extras deseados":"zona infantil, terraza, trastero","Financiación":"Necesita financiación","Plazo compra":"6-12 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-033","Probabilidad encaje %":72,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-012","Nombre":"David Moreno Molina","Teléfono":"+34 661 525 847","Email":"cliente012@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Valencia","Zona preferida":"Ruzafa","Tipología preferida":"Chalet adosado","m² mínimo":326,"m² máximo":452,"Presupuesto mínimo":1119000,"Presupuesto máximo":1335000,"Habitaciones mín.":4,"Baños mín.":6,"Extras deseados":"zona infantil, garaje, vistas","Financiación":"Compra al contado","Plazo compra":"3-6 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-030","Probabilidad encaje %":52,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-013","Nombre":"Elena Ortega Ruiz","Teléfono":"+34 646 714 419","Email":"cliente013@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Bilbao","Zona preferida":"Abando","Tipología preferida":"Ático / Dúplex","m² mínimo":176,"m² máximo":247,"Presupuesto mínimo":1137000,"Presupuesto máximo":1558000,"Habitaciones mín.":5,"Baños mín.":3,"Extras deseados":"seguridad 24h, terraza, domótica","Financiación":"Venta previa pendiente","Plazo compra":"3-6 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-006","Probabilidad encaje %":70,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-014","Nombre":"Miguel Díaz Moreno","Teléfono":"+34 654 106 285","Email":"cliente014@ejemplo.com","Origen lead":"WhatsApp","Motivo de compra":"Inversión patrimonial","Ciudad preferida":"Madrid","Zona preferida":"Retiro","Tipología preferida":"Apartamento / Loft","m² mínimo":118,"m² máximo":160,"Presupuesto mínimo":522000,"Presupuesto máximo":707000,"Habitaciones mín.":5,"Baños mín.":3,"Extras deseados":"seguridad 24h, trastero, chimenea","Financiación":"Necesita financiación","Plazo compra":"0-3 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-008","Probabilidad encaje %":95,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-015","Nombre":"Ana Martín Navarro","Teléfono":"+34 666 777 534","Email":"cliente015@ejemplo.com","Origen lead":"Google Ads","Motivo de compra":"Reubicación laboral","Ciudad preferida":"Zaragoza","Zona preferida":"Centro","Tipología preferida":"Piso / Ático","m² mínimo":95,"m² máximo":132,"Presupuesto mínimo":206000,"Presupuesto máximo":306000,"Habitaciones mín.":3,"Baños mín.":1,"Extras deseados":"domótica, jardín, gimnasio","Financiación":"Hipoteca preaprobada","Plazo compra":"6-12 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-025","Probabilidad encaje %":55,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-016","Nombre":"Sergio Sánchez Navarro","Teléfono":"+34 647 435 222","Email":"cliente016@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Segunda residencia","Ciudad preferida":"Madrid","Zona preferida":"Tetuán","Tipología preferida":"Villa / Piso / Dúplex","m² mínimo":388,"m² máximo":525,"Presupuesto mínimo":2840000,"Presupuesto máximo":3452000,"Habitaciones mín.":7,"Baños mín.":1,"Extras deseados":"seguridad 24h, ascensor, domótica","Financiación":"Venta previa pendiente","Plazo compra":"3-6 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-044","Probabilidad encaje %":52,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-017","Nombre":"Paula Castro García","Teléfono":"+34 651 275 920","Email":"cliente017@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Segunda residencia","Ciudad preferida":"Alicante","Zona preferida":"Playa San Juan","Tipología preferida":"Piso / Apartamento / Dúplex","m² mínimo":148,"m² máximo":206,"Presupuesto mínimo":673000,"Presupuesto máximo":890000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"trastero, ascensor, garaje","Financiación":"Hipoteca preaprobada","Plazo compra":"Sin urgencia","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-048","Probabilidad encaje %":63,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-018","Nombre":"Raúl Ramos Ramos","Teléfono":"+34 634 894 457","Email":"cliente018@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Madrid","Zona preferida":"Hortaleza","Tipología preferida":"Chalet adosado","m² mínimo":237,"m² máximo":307,"Presupuesto mínimo":1409000,"Presupuesto máximo":1848000,"Habitaciones mín.":7,"Baños mín.":6,"Extras deseados":"jardín, ascensor, trastero","Financiación":"Necesita financiación","Plazo compra":"3-6 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-038","Probabilidad encaje %":57,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-019","Nombre":"Beatriz Sánchez Molina","Teléfono":"+34 618 580 552","Email":"cliente019@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Tetuán","Tipología preferida":"Piso / Dúplex / Apartamento","m² mínimo":140,"m² máximo":196,"Presupuesto mínimo":1027000,"Presupuesto máximo":1226000,"Habitaciones mín.":4,"Baños mín.":1,"Extras deseados":"chimenea, ascensor, terraza","Financiación":"Compra al contado","Plazo compra":"0-3 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-013","Probabilidad encaje %":77,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-020","Nombre":"Álvaro Molina Núñez","Teléfono":"+34 693 292 429","Email":"cliente020@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Segunda residencia","Ciudad preferida":"Málaga","Zona preferida":"Marbella","Tipología preferida":"Ático / Dúplex","m² mínimo":134,"m² máximo":228,"Presupuesto mínimo":1027000,"Presupuesto máximo":1709000,"Habitaciones mín.":2,"Baños mín.":3,"Extras deseados":"terraza, zona infantil, gimnasio","Financiación":"Venta previa pendiente","Plazo compra":"0-3 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-003","Probabilidad encaje %":93,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-021","Nombre":"Carmen Ortega Moreno","Teléfono":"+34 696 712 153","Email":"cliente021@ejemplo.com","Origen lead":"WhatsApp","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Valencia","Zona preferida":"Ruzafa","Tipología preferida":"Ático / Dúplex","m² mínimo":114,"m² máximo":138,"Presupuesto mínimo":505000,"Presupuesto máximo":719000,"Habitaciones mín.":2,"Baños mín.":1,"Extras deseados":"garaje, ascensor, terraza","Financiación":"Hipoteca preaprobada","Plazo compra":"Sin urgencia","Nivel interés":"Medio","ID propiedad sugerida":"PROP-033","Probabilidad encaje %":64,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-022","Nombre":"Hugo Moreno Sánchez","Teléfono":"+34 695 819 948","Email":"cliente022@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Chalet independiente / Villa","m² mínimo":214,"m² máximo":349,"Presupuesto mínimo":1925000,"Presupuesto máximo":2310000,"Habitaciones mín.":3,"Baños mín.":1,"Extras deseados":"seguridad 24h, garaje, chimenea","Financiación":"Venta previa pendiente","Plazo compra":"6-12 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-022","Probabilidad encaje %":71,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-023","Nombre":"Irene Ramos Herrera","Teléfono":"+34 677 138 777","Email":"cliente023@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Compra premium","Ciudad preferida":"Madrid","Zona preferida":"Retiro","Tipología preferida":"Piso / Ático","m² mínimo":132,"m² máximo":162,"Presupuesto mínimo":615000,"Presupuesto máximo":749000,"Habitaciones mín.":1,"Baños mín.":1,"Extras deseados":"piscina, chimenea, garaje","Financiación":"Necesita financiación","Plazo compra":"3-6 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-012","Probabilidad encaje %":92,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-024","Nombre":"Marcos Díaz Santos","Teléfono":"+34 634 476 794","Email":"cliente024@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Segunda residencia","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Piso / Apartamento / Dúplex","m² mínimo":48,"m² máximo":68,"Presupuesto mínimo":251000,"Presupuesto máximo":316000,"Habitaciones mín.":5,"Baños mín.":1,"Extras deseados":"ascensor, domótica, piscina","Financiación":"Venta previa pendiente","Plazo compra":"Sin urgencia","Nivel interés":"Alto","ID propiedad sugerida":"PROP-047","Probabilidad encaje %":60,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-025","Nombre":"Patricia Molina Ramos","Teléfono":"+34 628 950 547","Email":"cliente025@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Inversión patrimonial","Ciudad preferida":"Bilbao","Zona preferida":"Abando","Tipología preferida":"Piso / Dúplex","m² mínimo":61,"m² máximo":96,"Presupuesto mínimo":400000,"Presupuesto máximo":618000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"ascensor, jardín, chimenea","Financiación":"Hipoteca preaprobada","Plazo compra":"Sin urgencia","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-017","Probabilidad encaje %":73,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-026","Nombre":"Fernando Ruiz Díaz","Teléfono":"+34 670 812 951","Email":"cliente026@ejemplo.com","Origen lead":"Referido","Motivo de compra":"Compra premium","Ciudad preferida":"Málaga","Zona preferida":"Marbella","Tipología preferida":"Chalet independiente","m² mínimo":358,"m² máximo":465,"Presupuesto mínimo":2179000,"Presupuesto máximo":3152000,"Habitaciones mín.":3,"Baños mín.":2,"Extras deseados":"jardín, trastero, chimenea","Financiación":"Hipoteca preaprobada","Plazo compra":"0-3 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-016","Probabilidad encaje %":64,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-027","Nombre":"Rocío Ortega Fuentes","Teléfono":"+34 668 164 213","Email":"cliente027@ejemplo.com","Origen lead":"WhatsApp","Motivo de compra":"Segunda residencia","Ciudad preferida":"Valencia","Zona preferida":"Ciutat Vella","Tipología preferida":"Ático / Piso / Dúplex","m² mínimo":182,"m² máximo":268,"Presupuesto mínimo":650000,"Presupuesto máximo":831000,"Habitaciones mín.":5,"Baños mín.":1,"Extras deseados":"terraza, ascensor, gimnasio","Financiación":"Necesita financiación","Plazo compra":"3-6 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-010","Probabilidad encaje %":75,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-028","Nombre":"Andrés Herrera García","Teléfono":"+34 659 994 581","Email":"cliente028@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Madrid","Zona preferida":"Moncloa-Aravaca","Tipología preferida":"Dúplex / Piso / Loft","m² mínimo":108,"m² máximo":161,"Presupuesto mínimo":571000,"Presupuesto máximo":889000,"Habitaciones mín.":1,"Baños mín.":1,"Extras deseados":"vistas, ascensor, seguridad 24h","Financiación":"Hipoteca preaprobada","Plazo compra":"6-12 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-040","Probabilidad encaje %":70,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-029","Nombre":"Noelia Pérez Molina","Teléfono":"+34 699 590 746","Email":"cliente029@ejemplo.com","Origen lead":"Referido","Motivo de compra":"Compra premium","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Piso / Ático","m² mínimo":51,"m² máximo":62,"Presupuesto mínimo":245000,"Presupuesto máximo":347000,"Habitaciones mín.":4,"Baños mín.":2,"Extras deseados":"piscina, ascensor, garaje","Financiación":"Venta previa pendiente","Plazo compra":"0-3 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-047","Probabilidad encaje %":60,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-030","Nombre":"Guillermo Ruiz Moreno","Teléfono":"+34 644 227 918","Email":"cliente030@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Segunda residencia","Ciudad preferida":"Madrid","Zona preferida":"Tetuán","Tipología preferida":"Piso / Dúplex / Ático","m² mínimo":165,"m² máximo":204,"Presupuesto mínimo":910000,"Presupuesto máximo":1302000,"Habitaciones mín.":4,"Baños mín.":1,"Extras deseados":"terraza, ascensor, chimenea","Financiación":"Venta previa pendiente","Plazo compra":"6-12 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-013","Probabilidad encaje %":79,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-031","Nombre":"Cristina Moreno López","Teléfono":"+34 620 435 776","Email":"cliente031@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Chalet independiente / Chalet adosado","m² mínimo":279,"m² máximo":360,"Presupuesto mínimo":1749000,"Presupuesto máximo":2326000,"Habitaciones mín.":6,"Baños mín.":6,"Extras deseados":"seguridad 24h, chimenea, trastero","Financiación":"Necesita financiación","Plazo compra":"Sin urgencia","Nivel interés":"Medio","ID propiedad sugerida":"PROP-024","Probabilidad encaje %":76,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-032","Nombre":"Víctor García Sánchez","Teléfono":"+34 687 794 900","Email":"cliente032@ejemplo.com","Origen lead":"Google Ads","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Piso / Ático","m² mínimo":53,"m² máximo":67,"Presupuesto mínimo":272000,"Presupuesto máximo":318000,"Habitaciones mín.":4,"Baños mín.":1,"Extras deseados":"ascensor, garaje, domótica","Financiación":"Compra al contado","Plazo compra":"6-12 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-047","Probabilidad encaje %":84,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-033","Nombre":"Alicia Castro Moreno","Teléfono":"+34 693 385 355","Email":"cliente033@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Barcelona","Zona preferida":"Sarrià-Sant Gervasi","Tipología preferida":"Chalet adosado / Chalet independiente","m² mínimo":163,"m² máximo":247,"Presupuesto mínimo":1337000,"Presupuesto máximo":1896000,"Habitaciones mín.":6,"Baños mín.":2,"Extras deseados":"trastero, ascensor, piscina","Financiación":"Venta previa pendiente","Plazo compra":"0-3 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-039","Probabilidad encaje %":64,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-034","Nombre":"Rubén Molina Martín","Teléfono":"+34 697 965 427","Email":"cliente034@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Hortaleza","Tipología preferida":"Piso / Ático","m² mínimo":65,"m² máximo":78,"Presupuesto mínimo":294000,"Presupuesto máximo":365000,"Habitaciones mín.":5,"Baños mín.":3,"Extras deseados":"terraza, domótica, chimenea","Financiación":"Compra al contado","Plazo compra":"6-12 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-014","Probabilidad encaje %":93,"Siguiente acción":"Enviar dossier"},{"ID propietario":"CLI-035","Nombre":"Eva Molina Herrera","Teléfono":"+34 626 726 188","Email":"cliente035@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Chalet independiente / Villa / Chalet adosado","m² mínimo":254,"m² máximo":324,"Presupuesto mínimo":1485000,"Presupuesto máximo":2091000,"Habitaciones mín.":6,"Baños mín.":6,"Extras deseados":"seguridad 24h, jardín, trastero","Financiación":"Venta previa pendiente","Plazo compra":"Sin urgencia","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-024","Probabilidad encaje %":84,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-036","Nombre":"Ignacio López Ramos","Teléfono":"+34 629 411 268","Email":"cliente036@ejemplo.com","Origen lead":"Referido","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Chamartín","Tipología preferida":"Piso / Ático / Apartamento","m² mínimo":169,"m² máximo":222,"Presupuesto mínimo":873000,"Presupuesto máximo":1262000,"Habitaciones mín.":1,"Baños mín.":2,"Extras deseados":"piscina, chimenea, seguridad 24h","Financiación":"Compra al contado","Plazo compra":"0-3 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-009","Probabilidad encaje %":60,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-037","Nombre":"Silvia Núñez Ruiz","Teléfono":"+34 613 183 146","Email":"cliente037@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Compra premium","Ciudad preferida":"Madrid","Zona preferida":"Chamartín","Tipología preferida":"Piso / Ático","m² mínimo":156,"m² máximo":220,"Presupuesto mínimo":787000,"Presupuesto máximo":1254000,"Habitaciones mín.":1,"Baños mín.":3,"Extras deseados":"garaje, vistas, ascensor","Financiación":"Venta previa pendiente","Plazo compra":"0-3 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-009","Probabilidad encaje %":88,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-038","Nombre":"Adrián Ortega Santos","Teléfono":"+34 669 308 448","Email":"cliente038@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Inversión patrimonial","Ciudad preferida":"Barcelona","Zona preferida":"Sarrià-Sant Gervasi","Tipología preferida":"Chalet adosado / Villa","m² mínimo":474,"m² máximo":602,"Presupuesto mínimo":3841000,"Presupuesto máximo":5068000,"Habitaciones mín.":6,"Baños mín.":2,"Extras deseados":"vistas, jardín, garaje","Financiación":"Compra al contado","Plazo compra":"Sin urgencia","Nivel interés":"Alto","ID propiedad sugerida":"PROP-042","Probabilidad encaje %":96,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-039","Nombre":"Teresa Castro Fuentes","Teléfono":"+34 663 354 986","Email":"cliente039@ejemplo.com","Origen lead":"Referido","Motivo de compra":"Compra premium","Ciudad preferida":"Valencia","Zona preferida":"Ruzafa","Tipología preferida":"Ático / Piso","m² mínimo":112,"m² máximo":148,"Presupuesto mínimo":474000,"Presupuesto máximo":633000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"zona infantil, ascensor, garaje","Financiación":"Compra al contado","Plazo compra":"3-6 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-033","Probabilidad encaje %":79,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-040","Nombre":"Manuel Ruiz Díaz","Teléfono":"+34 673 711 963","Email":"cliente040@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Madrid","Zona preferida":"Salamanca","Tipología preferida":"Chalet independiente / Villa","m² mínimo":247,"m² máximo":320,"Presupuesto mínimo":1784000,"Presupuesto máximo":2724000,"Habitaciones mín.":4,"Baños mín.":5,"Extras deseados":"garaje, trastero, chimenea","Financiación":"Hipoteca preaprobada","Plazo compra":"Sin urgencia","Nivel interés":"Alto","ID propiedad sugerida":"PROP-032","Probabilidad encaje %":64,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-041","Nombre":"Natalia Navarro Fuentes","Teléfono":"+34 697 725 221","Email":"cliente041@ejemplo.com","Origen lead":"Referido","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Málaga","Zona preferida":"Marbella","Tipología preferida":"Ático / Dúplex / Piso","m² mínimo":139,"m² máximo":178,"Presupuesto mínimo":989000,"Presupuesto máximo":1574000,"Habitaciones mín.":4,"Baños mín.":4,"Extras deseados":"vistas, ascensor, gimnasio","Financiación":"Compra al contado","Plazo compra":"6-12 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-049","Probabilidad encaje %":60,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-042","Nombre":"Óscar Pérez Castro","Teléfono":"+34 688 857 962","Email":"cliente042@ejemplo.com","Origen lead":"LinkedIn","Motivo de compra":"Reubicación laboral","Ciudad preferida":"Valencia","Zona preferida":"Ruzafa","Tipología preferida":"Ático / Piso / Dúplex","m² mínimo":98,"m² máximo":138,"Presupuesto mínimo":506000,"Presupuesto máximo":697000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"garaje, trastero, ascensor","Financiación":"Venta previa pendiente","Plazo compra":"6-12 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-033","Probabilidad encaje %":49,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-043","Nombre":"Marina Núñez Núñez","Teléfono":"+34 639 838 152","Email":"cliente043@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Segunda residencia","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Chalet independiente","m² mínimo":247,"m² máximo":376,"Presupuesto mínimo":1769000,"Presupuesto máximo":2518000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"garaje, seguridad 24h, chimenea","Financiación":"Venta previa pendiente","Plazo compra":"3-6 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-022","Probabilidad encaje %":50,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-044","Nombre":"Daniel Ramos Romero","Teléfono":"+34 681 432 778","Email":"cliente044@ejemplo.com","Origen lead":"Google Ads","Motivo de compra":"Reubicación laboral","Ciudad preferida":"Madrid","Zona preferida":"Tetuán","Tipología preferida":"Piso / Apartamento / Dúplex","m² mínimo":134,"m² máximo":204,"Presupuesto mínimo":868000,"Presupuesto máximo":1371000,"Habitaciones mín.":4,"Baños mín.":1,"Extras deseados":"vistas, chimenea, ascensor","Financiación":"Venta previa pendiente","Plazo compra":"6-12 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-013","Probabilidad encaje %":91,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-045","Nombre":"Lorena Moreno Santos","Teléfono":"+34 654 673 914","Email":"cliente045@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Compra para alquilar","Ciudad preferida":"Madrid","Zona preferida":"Moncloa-Aravaca","Tipología preferida":"Dúplex / Loft","m² mínimo":111,"m² máximo":176,"Presupuesto mínimo":587000,"Presupuesto máximo":832000,"Habitaciones mín.":1,"Baños mín.":1,"Extras deseados":"chimenea, seguridad 24h, jardín","Financiación":"Venta previa pendiente","Plazo compra":"Sin urgencia","Nivel interés":"Medio","ID propiedad sugerida":"PROP-040","Probabilidad encaje %":57,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-046","Nombre":"Gonzalo Herrera Navarro","Teléfono":"+34 627 211 730","Email":"cliente046@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Reubicación laboral","Ciudad preferida":"Málaga","Zona preferida":"Marbella","Tipología preferida":"Ático / Dúplex / Piso","m² mínimo":142,"m² máximo":222,"Presupuesto mínimo":1112000,"Presupuesto máximo":1588000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"jardín, zona infantil, garaje","Financiación":"Necesita financiación","Plazo compra":"3-6 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-003","Probabilidad encaje %":54,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-047","Nombre":"Sara Romero Díaz","Teléfono":"+34 651 392 761","Email":"cliente047@ejemplo.com","Origen lead":"Lead web","Motivo de compra":"Compra premium","Ciudad preferida":"Madrid","Zona preferida":"Centro","Tipología preferida":"Chalet independiente / Chalet adosado","m² mínimo":250,"m² máximo":302,"Presupuesto mínimo":1857000,"Presupuesto máximo":2180000,"Habitaciones mín.":2,"Baños mín.":2,"Extras deseados":"garaje, chimenea, seguridad 24h","Financiación":"Hipoteca preaprobada","Plazo compra":"3-6 meses","Nivel interés":"Bajo","ID propiedad sugerida":"PROP-022","Probabilidad encaje %":59,"Siguiente acción":"Llamar esta semana"},{"ID propietario":"CLI-048","Nombre":"Esther López Moreno","Teléfono":"+34 646 565 756","Email":"cliente048@ejemplo.com","Origen lead":"Base CRM","Motivo de compra":"Reubicación laboral","Ciudad preferida":"Valencia","Zona preferida":"Ruzafa","Tipología preferida":"Piso / Ático / Apartamento","m² mínimo":50,"m² máximo":61,"Presupuesto mínimo":151000,"Presupuesto máximo":209000,"Habitaciones mín.":1,"Baños mín.":2,"Extras deseados":"jardín, domótica, zona infantil","Financiación":"Venta previa pendiente","Plazo compra":"6-12 meses","Nivel interés":"Alto","ID propiedad sugerida":"PROP-026","Probabilidad encaje %":55,"Siguiente acción":"Agendar visita"},{"ID propietario":"CLI-049","Nombre":"Tomás Ortega Ramos","Teléfono":"+34 651 188 510","Email":"cliente049@ejemplo.com","Origen lead":"Evento inmobiliario","Motivo de compra":"Cambio de vivienda familiar","Ciudad preferida":"Madrid","Zona preferida":"Chamartín","Tipología preferida":"Ático / Dúplex / Piso","m² mínimo":135,"m² máximo":187,"Presupuesto mínimo":934000,"Presupuesto máximo":1114000,"Habitaciones mín.":4,"Baños mín.":1,"Extras deseados":"domótica, garaje, chimenea","Financiación":"Compra al contado","Plazo compra":"3-6 meses","Nivel interés":"Muy alto","ID propiedad sugerida":"PROP-011","Probabilidad encaje %":64,"Siguiente acción":"Nutrir con propiedades similares"},{"ID propietario":"CLI-050","Nombre":"Isabel Ruiz López","Teléfono":"+34 669 414 263","Email":"cliente050@ejemplo.com","Origen lead":"Google Ads","Motivo de compra":"Mejora de vivienda actual","Ciudad preferida":"Málaga","Zona preferida":"Marbella","Tipología preferida":"Chalet independiente / Chalet adosado","m² mínimo":363,"m² máximo":489,"Presupuesto mínimo":2246000,"Presupuesto máximo":3305000,"Habitaciones mín.":3,"Baños mín.":2,"Extras deseados":"jardín, chimenea, trastero","Financiación":"Compra al contado","Plazo compra":"0-3 meses","Nivel interés":"Medio","ID propiedad sugerida":"PROP-016","Probabilidad encaje %":71,"Siguiente acción":"Enviar dossier"}]</script>
+<script>
+const STORAGE_KEY = "match_estate_saved_v1";
+const DATA_KEY = "match_estate_custom_data_v1";
+const DEFAULT_PROPERTIES = JSON.parse(document.getElementById("embedded-properties").textContent);
+const DEFAULT_BUYERS = JSON.parse(document.getElementById("embedded-buyers").textContent);
+
+let properties = [];
+let buyers = [];
+let selectedBuyerId = null;
+let currentMatches = [];
+let pointer = 0;
+let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+const norm = v => (v ?? "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+const money = n => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(n||0));
+const num = v => typeof v === "number" ? v : Number((v ?? "").toString().replace(/[^\d.,-]/g,"").replace(".","").replace(",",".") || 0);
+const pct = n => `${Math.round(n)}%`;
+const esc = s => (s ?? "").toString().replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const csvEscape = s => `"${(s ?? "").toString().replace(/"/g,'""')}"`;
+
+function cleanProperty(p){
+  return {
+    id:p["ID propiedad"]||p.id||"",
+    title:p["Título"]||p.title||"",
+    type:p["Tipología"]||p.type||"",
+    city:p["Ciudad"]||p.city||"",
+    zone:p["Barrio/Zona"]||p.zone||"",
+    sqm:num(p["m² construidos"]||p.sqm),
+    plot:num(p["m² parcela"]||p.plot),
+    rooms:num(p["Habitaciones"]||p.rooms),
+    baths:num(p["Baños"]||p.baths),
+    floor:p["Planta"] ?? "",
+    price:num(p["Precio venta"]||p.price),
+    priceM2:num(p["€/m²"]||p.priceM2),
+    status:p["Estado"]||"",
+    orientation:p["Orientación"]||"",
+    extras:p["Extras"]||"",
+    energy:p["Cert. energética"]||"",
+    yield:num(p["Rentabilidad estimada %"]||p.yield),
+    use:p["Uso recomendado"]||"",
+    priority:p["Prioridad comercial"]||""
+  };
+}
+function cleanBuyer(b){
+  return {
+    id:b["ID propietario"]||b.id||"",
+    name:b["Nombre"]||b.name||"",
+    phone:b["Teléfono"]||b.phone||"",
+    email:b["Email"]||b.email||"",
+    source:b["Origen lead"]||"",
+    motive:b["Motivo de compra"]||"",
+    city:b["Ciudad preferida"]||"",
+    zone:b["Zona preferida"]||"",
+    types:b["Tipología preferida"]||"",
+    minSqm:num(b["m² mínimo"]||b.minSqm),
+    maxSqm:num(b["m² máximo"]||b.maxSqm),
+    minBudget:num(b["Presupuesto mínimo"]||b.minBudget),
+    maxBudget:num(b["Presupuesto máximo"]||b.maxBudget),
+    minRooms:num(b["Habitaciones mín."]||b.minRooms),
+    minBaths:num(b["Baños mín."]||b.minBaths),
+    extras:b["Extras deseados"]||"",
+    financing:b["Financiación"]||"",
+    timing:b["Plazo compra"]||"",
+    interest:b["Nivel interés"]||"",
+    suggested:b["ID propiedad sugerida"]||"",
+    expected:num(b["Probabilidad encaje %"]||0),
+    next:b["Siguiente acción"]||""
+  };
+}
+function resetEmbeddedData(){
+  localStorage.removeItem(DATA_KEY);
+  hydrate(DEFAULT_PROPERTIES, DEFAULT_BUYERS);
+}
+function hydrate(propRaw, buyerRaw){
+  properties = propRaw.map(cleanProperty).filter(p=>p.id);
+  buyers = buyerRaw.map(cleanBuyer).filter(b=>b.id);
+  selectedBuyerId = buyers[0]?.id || null;
+  pointer = 0;
+  renderAll();
+}
+function initialLoad(){
+  const custom = localStorage.getItem(DATA_KEY);
+  if(custom){
+    try{
+      const parsed = JSON.parse(custom);
+      hydrate(parsed.properties || DEFAULT_PROPERTIES, parsed.buyers || DEFAULT_BUYERS);
+      return;
+    }catch(e){}
+  }
+  hydrate(DEFAULT_PROPERTIES, DEFAULT_BUYERS);
+}
+function splitTokens(s){
+  return norm(s).split(/[,/|;]+/).map(x=>x.trim()).filter(Boolean);
+}
+function typeScore(buyerType, propType){
+  const bt = splitTokens(buyerType);
+  const pt = norm(propType);
+  if(!bt.length || !pt) return 0;
+  for(const t of bt){
+    if(t === pt) return 14;
+    if(t.includes(pt) || pt.includes(t)) return 12;
+    if(t.includes("chalet") && pt.includes("chalet")) return 11;
+    if((t.includes("duplex") || t.includes("dúplex")) && (pt.includes("duplex") || pt.includes("dúplex"))) return 14;
+    if(t.includes("piso") && pt.includes("piso")) return 14;
+    if(t.includes("atico") && pt.includes("atico")) return 14;
+    if(t.includes("apartamento") && pt.includes("apartamento")) return 14;
+    if(t.includes("villa") && (pt.includes("villa") || pt.includes("chalet"))) return 10;
+  }
+  return 0;
+}
+function extrasOverlap(buyerExtras, propExtras){
+  const want = splitTokens(buyerExtras);
+  const have = splitTokens(propExtras);
+  if(!want.length) return {score:0, hits:[]};
+  const hits = want.filter(w=>have.some(h=>h.includes(w) || w.includes(h)));
+  return {score: Math.min(12, (hits.length / want.length) * 12), hits};
+}
+function calculateMatch(b,p){
+  let score = 0;
+  const reasons = [];
+  const penalties = [];
+
+  const price = p.price, maxB=b.maxBudget, minB=b.minBudget;
+  if(price && maxB){
+    if(price <= maxB && (!minB || price >= minB)){ score += 22; reasons.push("Precio dentro del rango de presupuesto."); }
+    else if(price <= maxB){ score += 18; reasons.push("Precio por debajo del máximo presupuestado."); }
+    else if(price <= maxB*1.10){ score += 12; penalties.push("Precio ligeramente por encima del presupuesto."); }
+    else if(price <= maxB*1.20){ score += 7; penalties.push("Precio forzado, por encima del presupuesto."); }
+    else penalties.push("Precio fuera del presupuesto principal.");
+  }
+
+  if(p.sqm && b.minSqm){
+    if(p.sqm >= b.minSqm && (!b.maxSqm || p.sqm <= b.maxSqm)){ score += 16; reasons.push("Superficie dentro de la horquilla buscada."); }
+    else if(p.sqm >= b.minSqm){ score += 13; reasons.push("Superficie supera el mínimo solicitado."); }
+    else if(p.sqm >= b.minSqm*.9){ score += 7; penalties.push("Superficie algo inferior al mínimo."); }
+    else penalties.push("Superficie insuficiente.");
+  }
+
+  if(norm(p.city) === norm(b.city)){ score += 16; reasons.push("Coincide la ciudad preferida."); }
+  else penalties.push("No coincide ciudad.");
+
+  if(norm(p.zone) === norm(b.zone)){ score += 12; reasons.push("Coincide la zona exacta."); }
+  else if(norm(p.city) === norm(b.city)){ score += 5; reasons.push("Misma ciudad, zona alternativa."); }
+
+  const ts = typeScore(b.types,p.type);
+  score += ts;
+  if(ts >= 12) reasons.push("Tipología alineada con la búsqueda.");
+  else if(ts > 0) reasons.push("Tipología relacionada.");
+  else penalties.push("Tipología poco alineada.");
+
+  if(p.rooms >= b.minRooms){ score += 8; reasons.push("Cumple habitaciones mínimas."); }
+  else penalties.push("No cumple habitaciones mínimas.");
+
+  if(p.baths >= b.minBaths){ score += 6; reasons.push("Cumple baños mínimos."); }
+  else penalties.push("No cumple baños mínimos.");
+
+  const ex = extrasOverlap(b.extras,p.extras);
+  score += ex.score;
+  if(ex.hits.length) reasons.push("Extras coincidentes: " + ex.hits.join(", ") + ".");
+  else penalties.push("Sin extras clave coincidentes.");
+
+  if(p.id === b.suggested){ score += 2; reasons.push("Coincide con la sugerencia del documento."); }
+  if(b.interest === "Muy alto") score += 2;
+  if(b.timing === "0-3 meses") score += 1;
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  return {score, reasons, penalties};
+}
+function matchesForBuyer(b){
+  return properties.map(p=>({buyer:b, property:p, ...calculateMatch(b,p)}));
+}
+function selectedBuyer(){
+  return buyers.find(b=>b.id===selectedBuyerId) || buyers[0];
+}
+function filteredBuyers(){
+  const q = norm(document.getElementById("buyerSearch")?.value || "");
+  const city = document.getElementById("cityFilter")?.value || "";
+  return buyers.filter(b =>
+    (!city || b.city===city) &&
+    (!q || norm([b.name,b.city,b.zone,b.motive,b.types].join(" ")).includes(q))
+  );
+}
+function renderAll(){
+  document.getElementById("dataCounter").textContent = `${properties.length} viviendas · ${buyers.length} compradores`;
+  renderCityFilter();
+  renderBuyerList();
+  refreshDeck();
+  renderHeatmap();
+  renderZones();
+  renderSaved();
+}
+function renderCityFilter(){
+  const select = document.getElementById("cityFilter");
+  const selected = select.value;
+  const cities = [...new Set(buyers.map(b=>b.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  select.innerHTML = `<option value="">Todas las ciudades</option>` + cities.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  if(cities.includes(selected)) select.value=selected;
+}
+function renderBuyerList(){
+  const list = document.getElementById("buyerList");
+  const rows = filteredBuyers();
+  if(!rows.length){ list.innerHTML = `<div class="empty">No hay compradores con ese filtro.</div>`; return; }
+  list.innerHTML = rows.map(b=>{
+    const best = Math.max(...matchesForBuyer(b).map(m=>m.score));
+    return `<div class="buyer-row ${b.id===selectedBuyerId?'active':''}" onclick="selectBuyer('${b.id}')">
+      <strong>${esc(b.name)}</strong>
+      <div class="buyer-meta"><span>${esc(b.city)} · ${esc(b.zone)}</span><span class="score-mini">${best}%</span></div>
+      <div class="buyer-meta"><span>${esc(b.types)}</span></div>
+    </div>`;
+  }).join("");
+}
+function selectBuyer(id){
+  selectedBuyerId = id;
+  pointer = 0;
+  renderBuyerList();
+  refreshDeck();
+  renderZones();
+}
+function refreshDeck(){
+  const b = selectedBuyer();
+  if(!b){ document.getElementById("matchCard").innerHTML = `<div class="empty">Sin compradores.</div>`; return; }
+  const q = norm(document.getElementById("globalSearch").value);
+  const minScore = Number(document.getElementById("minScore").value||0);
+  const sort = document.getElementById("sortMode").value;
+  currentMatches = matchesForBuyer(b).filter(m =>
+    m.score >= minScore &&
+    (!q || norm([m.property.title,m.property.city,m.property.zone,m.property.type,m.property.extras,m.property.status].join(" ")).includes(q))
+  );
+  currentMatches.sort((a,b)=>{
+    if(sort==="priceAsc") return a.property.price-b.property.price;
+    if(sort==="priceDesc") return b.property.price-a.property.price;
+    if(sort==="sqmDesc") return b.property.sqm-a.property.sqm;
+    return b.score-a.score;
+  });
+  if(pointer >= currentMatches.length) pointer=0;
+  renderCard();
+  renderTopMatches();
+}
+function renderCard(){
+  const box = document.getElementById("matchCard");
+  const b = selectedBuyer();
+  const m = currentMatches[pointer];
+  if(!m){
+    box.innerHTML = `<div class="empty" style="margin:30px">No hay viviendas con el filtro actual para ${esc(b.name)}.</div>`;
+    return;
+  }
+  const p = m.property;
+  const cut = 100 - m.score;
+  const reasons = [...m.reasons.slice(0,4), ...m.penalties.slice(0,2).map(x=>"Revisar: "+x)];
+  const phoneClean = b.phone.replace(/[^\d]/g,"");
+  box.innerHTML = `
+    <div class="client-side">
+      <div class="label">Comprador seleccionado</div>
+      <h2>${esc(b.name)}</h2>
+      <div class="client-grid">
+        <div class="kv"><span>Presupuesto</span><b>${money(b.minBudget)} – ${money(b.maxBudget)}</b></div>
+        <div class="kv"><span>Zona</span><b>${esc(b.city)} · ${esc(b.zone)}</b></div>
+        <div class="kv"><span>Superficie</span><b>${b.minSqm}–${b.maxSqm} m²</b></div>
+        <div class="kv"><span>Interés</span><b>${esc(b.interest)} · ${esc(b.timing)}</b></div>
+      </div>
+      <div class="label">Preferencias</div>
+      <div class="tags">
+        ${splitTokens(b.types).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}
+        ${splitTokens(b.extras).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}
+      </div>
+      <div style="margin-top:20px" class="label">Contacto</div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.45">${esc(b.phone)} · ${esc(b.email)}<br>${esc(b.next || "Sin acción definida")}</p>
+    </div>
+    <div class="property-side">
+      <div class="visual"><div class="home-mark">${esc(p.city)} · ${esc(p.zone)}</div></div>
+      <div class="rank">
+        <h3>${esc(p.title)}</h3>
+        <div class="score-ring" style="--cut:${cut}%"><div><b>${m.score}</b><span>match</span></div></div>
+      </div>
+      <div class="property-metrics">
+        <div class="metric"><span>Precio</span><b>${money(p.price)}</b></div>
+        <div class="metric"><span>Metros</span><b>${p.sqm} m²</b></div>
+        <div class="metric"><span>Hab.</span><b>${p.rooms}</b></div>
+        <div class="metric"><span>Baños</span><b>${p.baths}</b></div>
+      </div>
+      <div class="reasons">
+        ${reasons.map(r=>`<div class="reason">${esc(r)}</div>`).join("")}
+      </div>
+      <div class="card-actions">
+        <button class="btn ghost" onclick="discardCurrent()">Descartar</button>
+        <button class="btn gold" onclick="saveCurrent()">Guardar match</button>
+        <button class="btn secondary" onclick="sendWhatsApp('${phoneClean}')">WhatsApp</button>
+      </div>
+    </div>`;
+}
+function renderTopMatches(){
+  const body = document.getElementById("topMatches");
+  const rows = currentMatches.slice(0,10);
+  body.innerHTML = rows.map((m,i)=>{
+    const p=m.property;
+    return `<tr onclick="pointer=${i};renderCard()" style="cursor:pointer">
+      <td>${i+1}</td>
+      <td><b>${esc(p.title)}</b><br><span style="color:var(--muted)">${esc(p.type)} · ${p.sqm} m²</span></td>
+      <td>${esc(p.city)}<br><span style="color:var(--muted)">${esc(p.zone)}</span></td>
+      <td>${money(p.price)}</td>
+      <td><b>${m.score}%</b></td>
+      <td>${esc(m.reasons[0] || m.penalties[0] || "")}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6">Sin resultados.</td></tr>`;
+}
+function nextCard(){ if(currentMatches.length){ pointer=(pointer+1)%currentMatches.length; renderCard(); } }
+function discardCurrent(){ nextCard(); }
+function saveCurrent(){
+  const m=currentMatches[pointer];
+  if(!m) return;
+  const exists=saved.some(s=>s.buyerId===m.buyer.id && s.propertyId===m.property.id);
+  if(!exists){
+    saved.unshift({
+      buyerId:m.buyer.id,buyer:m.buyer.name,propertyId:m.property.id,property:m.property.title,
+      score:m.score,price:m.property.price,city:m.property.city,zone:m.property.zone,date:new Date().toISOString()
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }
+  renderSaved();
+  nextCard();
+}
+function removeSaved(i){
+  saved.splice(i,1);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  renderSaved();
+}
+function renderSaved(){
+  const list=document.getElementById("savedList");
+  list.innerHTML = saved.length ? saved.map((s,i)=>`<div class="saved-card">
+    <strong>${esc(s.buyer)} ↔ ${esc(s.property)}</strong>
+    <span>${esc(s.city)} · ${esc(s.zone)} · ${money(s.price)} · Match ${s.score}%</span>
+    <button class="btn ghost" onclick="removeSaved(${i})">Quitar</button>
+  </div>`).join("") : `<div class="empty">Aún no hay matches guardados.</div>`;
+}
+function sendWhatsApp(phone){
+  const m=currentMatches[pointer];
+  if(!m) return;
+  const p=m.property, b=m.buyer;
+  const txt = `Hola ${b.name}, tengo una vivienda que encaja con tu búsqueda: ${p.title} en ${p.city}, ${p.zone}. Precio: ${money(p.price)}. Superficie: ${p.sqm} m². Match estimado: ${m.score}%. ¿Quieres que te envíe el dossier o agendamos visita?`;
+  const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(txt)}` : `https://wa.me/?text=${encodeURIComponent(txt)}`;
+  window.open(url,"_blank");
+}
+function renderHeatmap(){
+  const grid=document.getElementById("heatGrid");
+  const minScore = Number(document.getElementById("minScore").value||0);
+  const city = document.getElementById("cityFilter").value;
+  const bs = buyers.filter(b=>!city || b.city===city).slice(0,50);
+  const ps = properties.slice(0,50);
+  grid.style.setProperty("--cols", ps.length);
+  let html = `<div class="heat-corner"></div>`;
+  html += ps.map(p=>`<div class="heat-prop" title="${esc(p.title)}">${esc(p.id.replace("PROP-","P"))}</div>`).join("");
+  bs.forEach(b=>{
+    html += `<div class="heat-buyer" title="${esc(b.name)}">${esc(b.id.replace("CLI-","C"))} · ${esc(b.name.split(" ")[0])}</div>`;
+    ps.forEach(p=>{
+      const m=calculateMatch(b,p);
+      const alpha = m.score < minScore ? .08 : Math.max(.15, m.score/100);
+      const hue = m.score >= 80 ? 158 : m.score >= 65 ? 38 : 0;
+      html += `<div class="heat-cell" title="${esc(b.name)} ↔ ${esc(p.title)} · ${m.score}%" style="background:hsla(${hue},68%,36%,${alpha})" onclick="selectedBuyerId='${b.id}';pointer=0;renderBuyerList();refreshDeck();"></div>`;
+    });
+  });
+  grid.innerHTML=html;
+}
+function renderZones(){
+  const b=selectedBuyer();
+  const wrap=document.getElementById("zoneList");
+  if(!b){ wrap.innerHTML=`<div class="empty">Sin comprador seleccionado.</div>`; return; }
+  const zones={};
+  properties.forEach(p=>{
+    const key=`${p.city} · ${p.zone}`;
+    const score=calculateMatch(b,p).score;
+    zones[key] ||= {scores:[],count:0};
+    zones[key].scores.push(score); zones[key].count++;
+  });
+  const rows=Object.entries(zones).map(([k,v])=>({zone:k,avg:Math.round(v.scores.reduce((a,b)=>a+b,0)/v.scores.length),count:v.count}))
+    .sort((a,b)=>b.avg-a.avg).slice(0,12);
+  wrap.innerHTML=rows.map(z=>`<div class="zone-item">
+    <div class="zone-top"><b>${esc(z.zone)}</b><span>${z.avg}% · ${z.count} viviendas</span></div>
+    <div class="bar"><i style="width:${z.avg}%"></i></div>
+  </div>`).join("");
+}
+function openTab(name,btn){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".tab-pane").forEach(p=>p.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("tab-"+name).classList.add("active");
+}
+function exportMatchesCSV(){
+  const lines = [["comprador_id","comprador","telefono","email","propiedad_id","vivienda","ciudad","zona","precio","score","razones"]];
+  buyers.forEach(b=>{
+    matchesForBuyer(b).sort((a,b)=>b.score-a.score).slice(0,5).forEach(m=>{
+      lines.push([b.id,b.name,b.phone,b.email,m.property.id,m.property.title,m.property.city,m.property.zone,m.property.price,m.score,m.reasons.slice(0,3).join(" | ")]);
+    });
+  });
+  const csv = lines.map(r=>r.map(csvEscape).join(";")).join("\n");
+  downloadText(csv,"matches_inmobiliarios.csv","text/csv;charset=utf-8");
+}
+function downloadText(text,name,type){
+  const blob=new Blob([text],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=name; a.click();
+  URL.revokeObjectURL(url);
+}
+function parseCSV(text){
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(c=='"' && q && n=='"'){cur+='"';i++;continue;}
+    if(c=='"'){q=!q;continue;}
+    if((c==";"||c==",") && !q){row.push(cur);cur="";continue;}
+    if((c=="\n"||c=="\r") && !q){ if(cur||row.length){row.push(cur);rows.push(row);row=[];cur="";} if(c=="\r"&&n=="\n")i++; continue;}
+    cur+=c;
+  }
+  if(cur||row.length){row.push(cur);rows.push(row);}
+  const markerIdx = rows.findIndex(r=>r.some(c=>/^ID propiedad$|^ID propietario$/i.test(String(c).trim())));
+  if(markerIdx > 0) rows.splice(0, markerIdx);
+  const headers=rows.shift().map(h=>h.trim());
+  return rows.filter(r=>r.length && r.some(c=>String(c).trim()!=="")).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])));
+}
+function loadFile(ev,type){
+  const file=ev.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      let rows=[];
+      if(file.name.toLowerCase().endsWith(".csv")){
+        rows=parseCSV(e.target.result);
+      }else if(file.name.toLowerCase().endsWith(".xlsx")){
+        if(!window.XLSX){ alert("Para cargar XLSX hace falta conexión a la librería SheetJS o usar CSV."); return; }
+        const wb=XLSX.read(e.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const matrix=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+        const marker = type==="properties" ? "ID propiedad" : "ID propietario";
+        const headerIndex = matrix.findIndex(r=>r.some(c=>String(c).trim()===marker));
+        if(headerIndex === -1){ throw new Error("No se encontró la fila de cabeceras: " + marker); }
+        const headers = matrix[headerIndex].map(h=>String(h).trim());
+        rows = matrix.slice(headerIndex+1)
+          .filter(r=>r.some(c=>String(c).trim()!==""))
+          .map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])));
+      }
+      const rawProps = type==="properties" ? rows : properties;
+      const rawBuyers = type==="buyers" ? rows : buyers;
+      localStorage.setItem(DATA_KEY, JSON.stringify({properties:rawProps,buyers:rawBuyers}));
+      hydrate(rawProps,rawBuyers);
+    }catch(err){
+      alert("No se pudo leer el archivo. Revisa que conserve las columnas originales.");
+      console.error(err);
+    }
+  };
+  if(file.name.toLowerCase().endsWith(".csv")) reader.readAsText(file,"utf-8");
+  else reader.readAsArrayBuffer(file);
+}
+initialLoad();
+</script>
+</body>
+</html>
